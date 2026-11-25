@@ -1,0 +1,42 @@
+# Opens or updates the "Version packages" pull request from the changesets on main. Merging that
+# pull request publishes to npm with trusted publishing (no token) once the repository variable
+# NPM_PUBLISH is set to true. Until then this only maintains the pull request.
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          # Trusted publishing needs npm 11.5.1 or later; Node 24 ships it. No dependency cache in a job
+          # that can publish.
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm ci --ignore-scripts
+      - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          # changeset version doesn't touch the lockfile's own version field.
+          version-script: npx changeset version && npm install --package-lock-only
+          publish-script: ${{ vars.NPM_PUBLISH == 'true' && 'npm run release' || '' }}
+          commit-message: Version packages
+          pr-title: Version packages

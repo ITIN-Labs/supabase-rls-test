@@ -1,0 +1,7 @@
+[
+  {
+    "name": "dist, without PGlite",
+    "path": "dist/*.js",
+    "limit": "4 kB"
+  }
+]
