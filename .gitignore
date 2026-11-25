@@ -6,6 +6,16 @@ coverage/
 *.tgz
 .eslintcache
 
+# Working notes and personal tool settings
+notes/
+PROGRESS.md
+TODO.md
+PLAN.md
+HANDOFF.md
+SESSION*.md
+CLAUDE.local.md
+.claude/settings.local.json
+
 # Editor files
 .idea/
 .vscode/
