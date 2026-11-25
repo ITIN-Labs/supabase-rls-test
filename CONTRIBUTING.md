@@ -38,6 +38,10 @@ This applies to docs, comments, test names, error messages and commit messages.
 - Error messages say what went wrong and how to fix it, and never repeat sensitive input.
 - Commit messages are short and imperative: "Fix off-by-one in range check".
 
+## AI tools
+
+AI-assisted contributions are welcome. You're responsible for what you send: you've read all of it, run the checks, and it meets the standards on this page. [AGENTS.md](AGENTS.md) gives coding agents the same rules.
+
 ## Code of conduct
 
 Everyone taking part agrees to the [code of conduct](CODE_OF_CONDUCT.md).
