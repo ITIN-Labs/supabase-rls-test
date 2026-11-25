@@ -1,6 +1,6 @@
 {
   "name": "@itin-labs/supabase-rls-test",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Test Supabase row level security policies in-process, with no Docker: your migrations on in-memory Postgres, queried as each kind of user.",
   "keywords": [
     "supabase",
