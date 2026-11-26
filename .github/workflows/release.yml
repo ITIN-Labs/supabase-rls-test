@@ -7,6 +7,8 @@ name: Release
 on:
   push:
     branches: [main]
+  # Run by hand from main to stage a version that a push didn't, such as after a failed run.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,6 +19,7 @@ concurrency:
 
 jobs:
   release:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -43,12 +46,27 @@ jobs:
           version-script: npm run version-packages
           commit-message: Version packages
           pr-title: Version packages
-      # Once per version: on the push that changed the version in package.json, if npm doesn't have
-      # it yet. A version waiting for approval can't be staged twice, hence the diff check.
+      # Once per version: on the push that changed the version in package.json, or a run by hand, if
+      # npm doesn't have it yet. A version waiting for approval can't be staged twice, hence the diff
+      # check. The step decides inside and says why, so a wrong output name fails instead of skipping.
       - name: Stage the new version on npm
-        if: steps.changesets.outputs.hasChangesets == 'false' && vars.NPM_PUBLISH == 'true'
+        if: vars.NPM_PUBLISH == 'true'
+        env:
+          HAS_CHANGESETS: ${{ steps.changesets.outputs.has-changesets }}
+          BY_HAND: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
-          if ! git diff HEAD^ HEAD -- package.json | grep -q '^+  "version"'; then
+          case "$HAS_CHANGESETS" in
+            true)
+              echo "Changesets are waiting in the Version packages pull request, so there's nothing to stage."
+              exit 0
+              ;;
+            false) ;;
+            *)
+              echo "::error::changesets/action gave has-changesets='$HAS_CHANGESETS', not true or false. Check its outputs at the pinned version."
+              exit 1
+              ;;
+          esac
+          if [ "$BY_HAND" != true ] && ! git diff HEAD^ HEAD -- package.json | grep -q '^+  "version"'; then
             echo "The version didn't change in this push."
             exit 0
           fi
@@ -57,4 +75,5 @@ jobs:
             echo "$spec is already on npm."
             exit 0
           fi
+          echo "Staging $spec."
           npm run release
