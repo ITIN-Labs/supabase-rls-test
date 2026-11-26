@@ -24,7 +24,7 @@ A denied check leaks its change into later tests. Defence: `denied` always rolls
 
 A session's role or claims leak into the next query. Defence: each session query runs in its own transaction with `set local`, which Postgres undoes when the transaction ends, even after an error. The tests check the connection is back to the owner afterwards.
 
-Supply chain. One runtime dependency (PGlite), a committed lockfile, `npm ci` in CI, `npm audit`, CodeQL, Dependabot, actions pinned to commit SHAs, no install scripts, and publishing through npm trusted publishing with provenance.
+Supply chain. One runtime dependency (PGlite), a committed lockfile, `npm ci` in CI, `npm audit`, CodeQL, Dependabot, actions pinned to commit SHAs, no install scripts, and releases staged through npm trusted publishing, so each version goes live only when a maintainer approves it with 2FA.
 
 ## What leaves the machine
 

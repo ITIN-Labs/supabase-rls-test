@@ -1,6 +1,7 @@
 # Opens or updates the "Version packages" pull request from the changesets on main. Merging that
-# pull request publishes to npm with trusted publishing (no token) once the repository variable
-# NPM_PUBLISH is set to true. Until then this only maintains the pull request.
+# pull request stages the new version on npm with trusted publishing (no token) once the repository
+# variable NPM_PUBLISH is set to true. Nobody can install it until a maintainer approves it on
+# npmjs.com with 2FA. Until NPM_PUBLISH is set this only maintains the pull request.
 name: Release
 
 on:
@@ -26,17 +27,34 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # The parent commit too, to see whether this push changed the version.
+          fetch-depth: 2
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          # Trusted publishing needs npm 11.5.1 or later; Node 24 ships it. No dependency cache in a job
-          # that can publish.
-          node-version: 24
+          # npm stage needs npm 11.15 or later; Node 26 ships it. No dependency cache in a job that can
+          # publish.
+          node-version: 26
           registry-url: https://registry.npmjs.org
       - run: npm ci --ignore-scripts
       - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        id: changesets
         with:
           # changeset version doesn't touch the lockfile's own version field.
           version-script: npm run version-packages
-          publish-script: ${{ vars.NPM_PUBLISH == 'true' && 'npm run release' || '' }}
           commit-message: Version packages
           pr-title: Version packages
+      # Once per version: on the push that changed the version in package.json, if npm doesn't have
+      # it yet. A version waiting for approval can't be staged twice, hence the diff check.
+      - name: Stage the new version on npm
+        if: steps.changesets.outputs.hasChangesets == 'false' && vars.NPM_PUBLISH == 'true'
+        run: |
+          if ! git diff HEAD^ HEAD -- package.json | grep -q '^+  "version"'; then
+            echo "The version didn't change in this push."
+            exit 0
+          fi
+          spec=$(node -p "const p = require('./package.json'); p.name + '@' + p.version")
+          if npm view "$spec" version > /dev/null 2>&1; then
+            echo "$spec is already on npm."
+            exit 0
+          fi
+          npm run release
