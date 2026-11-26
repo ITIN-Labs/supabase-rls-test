@@ -62,7 +62,7 @@ Unknown options throw. Each call gives a fresh, separate database. Starting one 
 - Postgres refuses with a permission error (SQLSTATE `42501`). That's what an `insert` failing a `with check` does, and what a missing grant does.
 - The statement reads or changes no rows, though past the policies it would reach some. That's what an `update`, `delete` or `select` does when the policy's `using` clause filters every row out.
 
-To tell those apart from a check that points at nothing, `denied` runs an empty statement a second time, past the policies. If the statement matches nothing even past the policies, because the table is empty or the id is wrong, `denied` rejects with `NO_MATCHING_ROWS` instead of returning `true`. That second run happens as the database owner but keeps the user's token, so `auth.uid()` in the statement still means that user. Any other error rejects unchanged, so a typo in a test's SQL fails the test too. `denied` always rolls the statement back, so checking a write leaves the data as it was.
+To tell those apart from a check that points at nothing, `denied` runs an empty statement a second time, past the policies. If the statement matches nothing even past the policies, because the table is empty or the id is wrong, `denied` rejects with `NO_MATCHING_ROWS` instead of returning `true`. That second run happens as the database owner but keeps the user's token, so `auth.uid()` in the statement still means that user. If the second run raises an error, such as a trigger or a constraint refusing a row it reached, that counts as rows being there and `denied` returns `true`. Any error in the first run other than a permission error rejects unchanged, so a typo in a test's SQL fails the test too. `denied` always rolls the statement back, so checking a write leaves the data as it was.
 
 It's still worth checking the opposite case, that someone who should be allowed is, so a policy that stops everyone shows up as a failure.
 
@@ -122,6 +122,7 @@ This package trades fidelity for having nothing to install or start, with tests 
 - It tests SQL, not the HTTP API. PostgREST applies the same roles and policies, so a policy that holds here holds there, but column choices and request headers your app sends aren't covered.
 - Only the stubs listed above exist. Custom access token hooks, `auth.identities`, `auth.sessions` and the `vault` schema aren't there.
 - `query` takes one statement at a time.
+- `denied` counts an error in its second run, as the owner, as reaching rows. A trigger or function that raises only for the owner role can make a check that matches nothing return `true`.
 
 ## Privacy
 
