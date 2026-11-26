@@ -268,6 +268,25 @@ describe('a test database', () => {
       );
     });
 
+    it('is true when the owner run reaches a row that a trigger then refuses', async () => {
+      await db.query(
+        `create function public.freeze_notes() returns trigger language plpgsql as $$ begin raise exception 'notes are frozen'; end $$`,
+      );
+      await db.query(
+        'create trigger freeze_notes before update on notes for each row execute function public.freeze_notes()',
+      );
+      try {
+        assert.equal(await db.as(bob).denied(`update notes set body = 'x'`), true);
+        await assert.rejects(
+          db.as(bob).denied(`update notes set body = 'x' where id = -1`),
+          rejectsWith('NO_MATCHING_ROWS'),
+        );
+      } finally {
+        await db.query('drop trigger freeze_notes on notes');
+        await db.query('drop function public.freeze_notes()');
+      }
+    });
+
     it('rejects any other error, so a broken test cannot pass', async () => {
       await assert.rejects(db.as(bob).denied('delete from notez'), { code: '42P01' });
       await assert.rejects(db.as(bob).denied('selec 1'), { code: '42601' });

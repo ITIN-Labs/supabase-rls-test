@@ -130,7 +130,15 @@ export async function createTestDb(options: CreateTestDbOptions): Promise<TestDb
             // An empty result only means the rules stopped it if there were rows to stop, so run it
             // again as the owner, keeping the claims so auth.uid() in the statement still matches.
             await tx.exec('rollback to savepoint statement; set local role none');
-            if (isEmpty(result(await tx.query(sql, params)))) {
+            let reachedNothing: boolean;
+            try {
+              reachedNothing = isEmpty(result(await tx.query(sql, params)));
+            } catch {
+              // Past the rules it reached a row and something else refused it, such as a trigger
+              // or a constraint. The statement was the same, so the rules are what stopped the user.
+              return true;
+            }
+            if (reachedNothing) {
               throw new RlsTestError(
                 'NO_MATCHING_ROWS',
                 'denied(): the statement matched no rows even past the access rules, so there was nothing for them to stop. Point the check at a row that exists, for example with `where id = $1`.',

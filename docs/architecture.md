@@ -8,7 +8,7 @@ A signed-in session's claims come from the user's `auth.users` row, read just be
 
 After the migrations, the connection is reset, because a migration can leave settings behind that no Supabase request would inherit.
 
-`denied` runs the statement like any session query, always rolls back, and counts a permission error or an empty result as denied, which are the two ways Postgres reports a policy stopping a statement. An empty result is checked by rolling back to a savepoint and running the statement again as the owner; the request claims are transaction settings set before the savepoint, so they survive and `auth.uid()` means the same user in both runs.
+`denied` runs the statement like any session query, always rolls back, and counts a permission error or an empty result as denied, which are the two ways Postgres reports a policy stopping a statement. An empty result is checked by rolling back to a savepoint and running the statement again as the owner; the request claims are transaction settings set before the savepoint, so they survive and `auth.uid()` means the same user in both runs. An error in the owner run, from a trigger or constraint on a row it reached, counts as rows reached.
 
 ## Choices
 
