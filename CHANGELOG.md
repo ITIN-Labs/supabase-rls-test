@@ -1,5 +1,11 @@
 # @itin-labs/supabase-rls-test
 
+## 0.1.1
+
+### Patch Changes
+
+- 0d9a844: `denied` returns `true` when the check's second run, as the owner, reaches a row and a trigger or constraint refuses it. It used to reject with that error.
+
 ## 0.1.0
 
 ### Minor Changes
